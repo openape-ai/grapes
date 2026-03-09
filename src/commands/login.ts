@@ -121,6 +121,7 @@ async function loginWithPKCE(idp: string) {
       code,
       code_verifier: codeVerifier,
       redirect_uri: redirectUri,
+      sp_id: CLIENT_ID,
     }),
   })
 
