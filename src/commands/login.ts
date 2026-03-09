@@ -106,10 +106,11 @@ async function loginWithPKCE(idp: string) {
     })
 
     // Timeout after 5 minutes
-    setTimeout(() => {
+    const timeout = setTimeout(() => {
       server.close()
       reject(new Error('Login timed out'))
     }, 300_000)
+    timeout.unref()
   })
 
   // Exchange code for tokens
