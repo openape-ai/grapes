@@ -55,12 +55,17 @@ async function loginWithPKCE(idp: string) {
   const codeChallenge = await generateCodeChallenge(codeVerifier)
   const redirectUri = `http://localhost:${CALLBACK_PORT}/callback`
 
+  const state = crypto.randomUUID()
+  const nonce = crypto.randomUUID()
+
   const authUrl = new URL(`${idp}/authorize`)
   authUrl.searchParams.set('response_type', 'code')
-  authUrl.searchParams.set('client_id', CLIENT_ID)
+  authUrl.searchParams.set('sp_id', CLIENT_ID)
   authUrl.searchParams.set('redirect_uri', redirectUri)
   authUrl.searchParams.set('code_challenge', codeChallenge)
   authUrl.searchParams.set('code_challenge_method', 'S256')
+  authUrl.searchParams.set('state', state)
+  authUrl.searchParams.set('nonce', nonce)
   authUrl.searchParams.set('scope', 'openid email profile offline_access')
 
   // Start local callback server
