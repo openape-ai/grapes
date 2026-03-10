@@ -60,7 +60,7 @@ async function loginWithPKCE(idp: string) {
 
   const authUrl = new URL(`${idp}/authorize`)
   authUrl.searchParams.set('response_type', 'code')
-  authUrl.searchParams.set('sp_id', CLIENT_ID)
+  authUrl.searchParams.set('client_id', CLIENT_ID)
   authUrl.searchParams.set('redirect_uri', redirectUri)
   authUrl.searchParams.set('code_challenge', codeChallenge)
   authUrl.searchParams.set('code_challenge_method', 'S256')
@@ -122,7 +122,7 @@ async function loginWithPKCE(idp: string) {
       code,
       code_verifier: codeVerifier,
       redirect_uri: redirectUri,
-      sp_id: CLIENT_ID,
+      client_id: CLIENT_ID,
     }),
   })
 
