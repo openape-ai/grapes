@@ -1,6 +1,7 @@
 import { defineCommand } from 'citty'
 import consola from 'consola'
-import { apiFetch } from '../http'
+import { getIdpUrl } from '../config'
+import { apiFetch, getGrantsEndpoint } from '../http'
 
 export const approveCommand = defineCommand({
   meta: {
@@ -15,7 +16,9 @@ export const approveCommand = defineCommand({
     },
   },
   async run({ args }) {
-    await apiFetch(`/api/grants/${args.id}/approve`, {
+    const idp = getIdpUrl()!
+    const grantsUrl = await getGrantsEndpoint(idp)
+    await apiFetch(`${grantsUrl}/${args.id}/approve`, {
       method: 'POST',
     })
     consola.success(`Grant ${args.id} approved.`)

@@ -1,6 +1,7 @@
 import { defineCommand } from 'citty'
 import consola from 'consola'
-import { apiFetch } from '../http'
+import { getIdpUrl } from '../config'
+import { apiFetch, getGrantsEndpoint } from '../http'
 
 interface GrantDetail {
   id: string
@@ -38,7 +39,9 @@ export const statusCommand = defineCommand({
     },
   },
   async run({ args }) {
-    const grant = await apiFetch<GrantDetail>(`/api/grants/${args.id}`)
+    const idp = getIdpUrl()!
+    const grantsUrl = await getGrantsEndpoint(idp)
+    const grant = await apiFetch<GrantDetail>(`${grantsUrl}/${args.id}`)
 
     if (args.json) {
       console.log(JSON.stringify(grant, null, 2))

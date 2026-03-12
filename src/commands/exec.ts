@@ -1,8 +1,8 @@
 import { execFileSync } from 'node:child_process'
 import { defineCommand } from 'citty'
 import consola from 'consola'
-import { loadAuth, loadConfig } from '../config'
-import { apiFetch } from '../http'
+import { getIdpUrl, loadAuth, loadConfig } from '../config'
+import { apiFetch, getGrantsEndpoint } from '../http'
 
 export const execCommand = defineCommand({
   meta: {
@@ -49,11 +49,13 @@ export const execCommand = defineCommand({
       return process.exit(1)
     }
 
+    const idp = getIdpUrl()!
+    const grantsUrl = await getGrantsEndpoint(idp)
     const command = args.command.split(' ')
 
     // Step 1: Request grant
     consola.info(`Requesting grant for: ${command.join(' ')}`)
-    const grant = await apiFetch<{ id: string, status: string }>('/api/grants', {
+    const grant = await apiFetch<{ id: string, status: string }>(grantsUrl, {
       method: 'POST',
       body: {
         type: 'command',
@@ -70,11 +72,11 @@ export const execCommand = defineCommand({
 
     // Step 2: Wait for approval
     consola.info('Waiting for approval...')
-    await waitForApproval(grant.id)
+    await waitForApproval(grantsUrl, grant.id)
 
     // Step 3: Get grant token
     consola.info('Fetching grant token...')
-    const { token } = await apiFetch<{ token: string }>(`/api/grants/${grant.id}/token`, {
+    const { token } = await apiFetch<{ token: string }>(`${grantsUrl}/${grant.id}/token`, {
       method: 'POST',
     })
 
@@ -91,13 +93,13 @@ export const execCommand = defineCommand({
   },
 })
 
-async function waitForApproval(grantId: string): Promise<void> {
+async function waitForApproval(grantsUrl: string, grantId: string): Promise<void> {
   const maxWait = 300_000 // 5 minutes
   const interval = 3_000
   const start = Date.now()
 
   while (Date.now() - start < maxWait) {
-    const grant = await apiFetch<{ status: string }>(`/api/grants/${grantId}`)
+    const grant = await apiFetch<{ status: string }>(`${grantsUrl}/${grantId}`)
 
     if (grant.status === 'approved') {
       consola.success('Grant approved!')

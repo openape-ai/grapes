@@ -5,6 +5,7 @@ import { defineCommand } from 'citty'
 import { generateCodeChallenge, generateCodeVerifier } from '@openape/core'
 import consola from 'consola'
 import { loadConfig, saveAuth } from '../config'
+import { getAgentAuthenticateEndpoint, getAgentChallengeEndpoint } from '../http'
 
 const CALLBACK_PORT = 9876
 const CLIENT_ID = 'grapes-cli'
@@ -170,8 +171,9 @@ async function loginWithKey(idp: string, keyPath: string, email?: string) {
     return process.exit(1)
   }
 
-  // Use challenge-response auth
-  const challengeResp = await fetch(`${idp}/api/agent/challenge`, {
+  // Use challenge-response auth (endpoint resolved via OIDC discovery)
+  const challengeUrl = await getAgentChallengeEndpoint(idp)
+  const challengeResp = await fetch(challengeUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ agent_id: agentEmail }),
@@ -189,8 +191,9 @@ async function loginWithKey(idp: string, keyPath: string, email?: string) {
   const privateKey = createPrivateKey(keyContent)
   const signature = sign(null, Buffer.from(challenge), privateKey).toString('base64')
 
-  // Authenticate
-  const authResp = await fetch(`${idp}/api/agent/authenticate`, {
+  // Authenticate (endpoint resolved via OIDC discovery)
+  const authenticateUrl = await getAgentAuthenticateEndpoint(idp)
+  const authResp = await fetch(authenticateUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

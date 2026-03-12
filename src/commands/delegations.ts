@@ -1,6 +1,7 @@
 import { defineCommand } from 'citty'
 import consola from 'consola'
-import { apiFetch } from '../http'
+import { getIdpUrl } from '../config'
+import { apiFetch, getDelegationsEndpoint } from '../http'
 
 interface Delegation {
   id: string
@@ -26,7 +27,9 @@ export const delegationsCommand = defineCommand({
     },
   },
   async run({ args }) {
-    const delegations = await apiFetch<Delegation[]>('/api/delegations')
+    const idp = getIdpUrl()!
+    const delegationsUrl = await getDelegationsEndpoint(idp)
+    const delegations = await apiFetch<Delegation[]>(delegationsUrl)
 
     if (args.json) {
       console.log(JSON.stringify(delegations, null, 2))

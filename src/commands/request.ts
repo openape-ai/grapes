@@ -1,7 +1,7 @@
 import { defineCommand } from 'citty'
 import consola from 'consola'
-import { loadAuth, loadConfig } from '../config'
-import { apiFetch } from '../http'
+import { getIdpUrl, loadAuth, loadConfig } from '../config'
+import { apiFetch, getGrantsEndpoint } from '../http'
 
 export const requestCommand = defineCommand({
   meta: {
@@ -48,9 +48,11 @@ export const requestCommand = defineCommand({
       return process.exit(1)
     }
 
+    const idp = getIdpUrl()!
+    const grantsUrl = await getGrantsEndpoint(idp)
     const command = args.command.split(' ')
 
-    const grant = await apiFetch<{ id: string, status: string }>('/api/grants', {
+    const grant = await apiFetch<{ id: string, status: string }>(grantsUrl, {
       method: 'POST',
       body: {
         type: 'command',
@@ -68,18 +70,18 @@ export const requestCommand = defineCommand({
 
     if (args.wait) {
       consola.info('Waiting for approval...')
-      await waitForApproval(grant.id)
+      await waitForApproval(grantsUrl, grant.id)
     }
   },
 })
 
-async function waitForApproval(grantId: string): Promise<void> {
+async function waitForApproval(grantsUrl: string, grantId: string): Promise<void> {
   const maxWait = 300_000 // 5 minutes
   const interval = 3_000
   const start = Date.now()
 
   while (Date.now() - start < maxWait) {
-    const grant = await apiFetch<{ status: string }>(`/api/grants/${grantId}`)
+    const grant = await apiFetch<{ status: string }>(`${grantsUrl}/${grantId}`)
 
     if (grant.status === 'approved') {
       consola.success('Grant approved!')

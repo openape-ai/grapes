@@ -1,6 +1,7 @@
 import { defineCommand } from 'citty'
 import consola from 'consola'
-import { apiFetch } from '../http'
+import { getIdpUrl } from '../config'
+import { apiFetch, getGrantsEndpoint } from '../http'
 
 interface Grant {
   id: string
@@ -14,6 +15,14 @@ interface Grant {
     reason?: string
   }
   created_at?: string
+}
+
+interface PaginatedGrants {
+  data: Grant[]
+  pagination: {
+    cursor: string | null
+    has_more: boolean
+  }
 }
 
 export const listCommand = defineCommand({
@@ -31,16 +40,32 @@ export const listCommand = defineCommand({
       description: 'Output as JSON',
       default: false,
     },
+    limit: {
+      type: 'string',
+      description: 'Max results (default 20, max 100)',
+    },
   },
   async run({ args }) {
-    const query = args.status ? `?status=${args.status}` : ''
-    const grants = await apiFetch<Grant[]>(`/api/grants${query}`)
+    const idp = getIdpUrl()
+    if (!idp) {
+      consola.error('No IdP URL configured. Run `grapes login` first or pass --idp.')
+      return process.exit(1)
+    }
+
+    const grantsUrl = await getGrantsEndpoint(idp)
+    const params = new URLSearchParams()
+    if (args.status) params.set('status', args.status)
+    if (args.limit) params.set('limit', args.limit)
+    const query = params.toString() ? `?${params.toString()}` : ''
+
+    const response = await apiFetch<PaginatedGrants>(`${grantsUrl}${query}`)
 
     if (args.json) {
-      console.log(JSON.stringify(grants, null, 2))
+      console.log(JSON.stringify(response, null, 2))
       return
     }
 
+    const grants = response.data
     if (grants.length === 0) {
       consola.info('No grants found.')
       return
@@ -53,6 +78,10 @@ export const listCommand = defineCommand({
       if (grant.request?.reason) {
         console.log(`  Reason: ${grant.request.reason}`)
       }
+    }
+
+    if (response.pagination.has_more) {
+      consola.info(`More results available. Use --limit or pagination cursor.`)
     }
   },
 })

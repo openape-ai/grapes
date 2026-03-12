@@ -1,7 +1,7 @@
 import { defineCommand } from 'citty'
 import consola from 'consola'
-import { loadAuth } from '../config'
-import { apiFetch } from '../http'
+import { getIdpUrl, loadAuth } from '../config'
+import { apiFetch, getDelegationsEndpoint } from '../http'
 
 export const delegateCommand = defineCommand({
   meta: {
@@ -40,6 +40,9 @@ export const delegateCommand = defineCommand({
       return process.exit(1)
     }
 
+    const idp = getIdpUrl()!
+    const delegationsUrl = await getDelegationsEndpoint(idp)
+
     const body: Record<string, unknown> = {
       delegate: args.to,
       audience: args.at,
@@ -54,7 +57,7 @@ export const delegateCommand = defineCommand({
       body.expires_at = args.expires
     }
 
-    const result = await apiFetch<{ id: string }>('/api/delegations', {
+    const result = await apiFetch<{ id: string }>(delegationsUrl, {
       method: 'POST',
       body,
     })
